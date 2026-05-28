@@ -1,6 +1,8 @@
 from src.interface.analysis_selector import AnalysisSelector
 from src.export.export_manager import ExportManager
 from src.machine_learning.advanced_pattern_engine import AdvancedPatternEngine
+from src.intelligence.semantic_scientific_engine import SemanticScientificEngine
+from src.intelligence.data_recognition_core_v2 import DataRecognitionCoreV2
 from src.intelligence.auto_analysis_engine_v2 import AutoAnalysisEngineV2
 
 import pandas as pd
@@ -58,20 +60,26 @@ def main():
 
     print(f"\nProjeto criado em:\n{project_dir}")
 
+    print("\n===================================")
+    print("ATHENA ANALYTICS - SELEÇÃO DE MODO")
+    print("===================================")
+
     selector = AnalysisSelector()
     analysis_plan = selector.show_modes()
 
-    selected = analysis_plan["analyses"]
+    print("\nPlano de análise definido:")
+    print(analysis_plan)
 
     def should_run(name):
-        return name in selected
 
-    print("\nPLANO FINAL EXECUTADO PELO ATHENA:")
-    print(selected)
+        if analysis_plan["mode"] == "auto":
+            return True
+
+        return name in analysis_plan["analyses"]
 
     pipeline_result = route_pipeline(df)
 
-    print("\nPipeline de reconhecimento executado.")
+    print("\nPipeline executado.")
     print(pipeline_result)
 
     group_column = detect_group_column(df)
@@ -87,18 +95,18 @@ def main():
             group_column=group_column
         )
 
-        print("\nEstatística/ANOVA executada.")
+        print("\nEstatística automática executada.")
         print(stats_result)
 
     else:
 
-        print("\nEstatística/ANOVA ignorada.")
+        print("\nEstatística ignorada.")
 
     if should_run("pca"):
 
         try:
 
-            run_pca(
+            pca_result = run_pca(
                 df,
                 group_column=group_column,
                 output_path=figures_dir
@@ -118,7 +126,7 @@ def main():
 
         try:
 
-            run_kmeans(
+            kmeans_result = run_kmeans(
                 df,
                 group_column=group_column
             )
@@ -133,13 +141,18 @@ def main():
 
         print("\nKMeans ignorado.")
 
-    if should_run("graficos") or should_run("relatorio_word"):
+    if (
+        should_run("graficos")
+        or should_run("relatorio_word")
+    ):
 
         print("\nExecutando Auto Analysis Engine V2...")
 
-        AutoAnalysisEngineV2(
+        auto_engine_v2 = AutoAnalysisEngineV2(
             output_dir=project_dir
-        ).run(df)
+        )
+
+        auto_engine_v2.run(df)
 
         print("AUTO ANALYSIS ENGINE V2 EXECUTADA")
 
@@ -147,13 +160,18 @@ def main():
 
         print("\nAuto Analysis Engine V2 ignorada.")
 
-    if should_run("umap") or should_run("hdbscan"):
+    if (
+        should_run("umap")
+        or should_run("hdbscan")
+    ):
 
         print("\nExecutando Advanced Pattern Engine...")
 
-        AdvancedPatternEngine(
+        advanced_engine = AdvancedPatternEngine(
             output_dir=project_dir
-        ).run(df)
+        )
+
+        advanced_engine.run(df)
 
         print("ADVANCED PATTERN ENGINE EXECUTADA")
 
@@ -161,15 +179,22 @@ def main():
 
         print("\nAdvanced Pattern Engine ignorada.")
 
-    if should_run("exportacao"):
+    print("\nDeseja exportar os resultados finais?")
+    export_choice = input(
+        "Digite S para exportar ou ENTER para pular: "
+    ).strip().lower()
 
-        ExportManager(
+    if export_choice == "s":
+
+        export_manager = ExportManager(
             project_dir=project_dir
-        ).run()
+        )
+
+        export_manager.run()
 
     else:
 
-        print("\nExportação ignorada.")
+        print("Exportação final pulada pelo usuário.")
 
     print("\nATHENA finalizado.")
 

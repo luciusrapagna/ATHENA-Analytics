@@ -1,0 +1,89 @@
+class AnalysisSelector:
+
+    def __init__(self):
+        self.available_analyses = {
+            "1": "estatistica",
+            "2": "anova",
+            "3": "correlacao",
+            "4": "pca",
+            "5": "kmeans",
+            "6": "umap",
+            "7": "hdbscan",
+            "8": "nmds",
+            "9": "permanova",
+            "10": "anosim",
+            "11": "graficos",
+            "12": "relatorio_word",
+            "13": "exportacao"
+        }
+
+    def show_modes(self):
+        print("\n===================================")
+        print("ATHENA ANALYTICS - MODO DE ANÁLISE")
+        print("===================================")
+        print("[1] Automático")
+        print("[2] Assistido")
+        print("[3] Expert")
+
+        choice = input("\nEscolha o modo: ").strip()
+
+        if choice == "2":
+            return self.assisted_mode()
+
+        if choice == "3":
+            return self.expert_mode()
+
+        return self.auto_mode()
+
+    def auto_mode(self):
+        print("\nModo automático selecionado.")
+        return {
+            "mode": "auto",
+            "analyses": "all"
+        }
+
+    def assisted_mode(self):
+        print("\nModo assistido selecionado.")
+        print("O ATHENA executará as análises principais recomendadas.")
+
+        return {
+            "mode": "assisted",
+            "analyses": [
+                "estatistica",
+                "anova",
+                "pca",
+                "kmeans",
+                "graficos",
+                "relatorio_word"
+            ]
+        }
+
+    def expert_mode(self):
+        print("\nModo expert selecionado.")
+        print("\nEscolha as análises:")
+
+        for key, value in self.available_analyses.items():
+            print(f"[{key}] {value}")
+
+        selected = input(
+            "\nDigite os números separados por vírgula: "
+        ).strip()
+
+        selected_keys = [
+            item.strip()
+            for item in selected.split(",")
+            if item.strip() in self.available_analyses
+        ]
+
+        analyses = [
+            self.available_analyses[key]
+            for key in selected_keys
+        ]
+
+        print("\nAnálises selecionadas:")
+        print(analyses)
+
+        return {
+            "mode": "expert",
+            "analyses": analyses
+        }
