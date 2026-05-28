@@ -1,0 +1,163 @@
+import pandas as pd
+
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
+from src.core.pipeline_router import route_pipeline
+
+from src.core.group_detector import (
+    detect_group_column
+)
+
+from src.cleaning.smart_imputer import (
+    smart_imputation
+)
+
+from src.statistics.auto_statistics import (
+    run_auto_statistics
+)
+
+from src.multivariate.pca import run_pca
+from src.multivariate.kmeans import run_kmeans
+
+from src.utils.project_structure import (
+    create_project_structure
+)
+
+
+def main():
+
+    print("\nATHENA Analytics\n")
+
+    # -----------------------------------------
+    # Explorer
+    # -----------------------------------------
+
+    Tk().withdraw()
+
+    file_path = askopenfilename(
+        title="Selecione a planilha",
+        filetypes=[
+            ("Excel files", "*.xlsx"),
+            ("CSV files", "*.csv")
+        ]
+    )
+
+    if not file_path:
+
+        print("\nNenhum arquivo selecionado.")
+        return
+
+    # -----------------------------------------
+    # Ler planilha
+    # -----------------------------------------
+
+    if file_path.endswith(".xlsx"):
+
+        df = pd.read_excel(file_path)
+
+    elif file_path.endswith(".csv"):
+
+        df = pd.read_csv(file_path)
+
+    else:
+
+        raise ValueError(
+            "Formato não suportado."
+        )
+
+    print("\nPlanilha carregada.")
+
+    # -----------------------------------------
+    # Smart Imputation
+    # -----------------------------------------
+
+    df = smart_imputation(df)
+
+    print("\nMissing values tratados.")
+
+    # -----------------------------------------
+    # Estrutura do projeto
+    # -----------------------------------------
+
+    project_dir = create_project_structure(
+        base_name="athena_analysis"
+    )
+
+    figures_dir = project_dir / "04_figures"
+
+    print(f"\nProjeto criado em:\n{project_dir}")
+
+    # -----------------------------------------
+    # Pipeline inteligente
+    # -----------------------------------------
+
+    pipeline_result = route_pipeline(df)
+
+    print("\nPipeline executado.")
+
+    print(pipeline_result)
+
+    # -----------------------------------------
+    # Detectar grupo
+    # -----------------------------------------
+
+    group_column = detect_group_column(df)
+
+    print(
+        f"\nColuna de grupo detectada: {group_column}"
+    )
+
+    # -----------------------------------------
+    # Estatística automática
+    # -----------------------------------------
+
+    stats_result = run_auto_statistics(
+        df,
+        group_column=group_column
+    )
+
+    print("\nEstatística automática executada.")
+
+    print(stats_result)
+
+    # -----------------------------------------
+    # PCA automático
+    # -----------------------------------------
+
+    try:
+
+        pca_result = run_pca(
+            df,
+            group_column=group_column,
+            output_path=figures_dir
+        )
+
+        print("\nPCA executado.")
+
+    except Exception as e:
+
+        print(f"\nPCA não executado: {e}")
+
+    # -----------------------------------------
+    # KMeans automático
+    # -----------------------------------------
+
+    try:
+
+        kmeans_result = run_kmeans(
+            df,
+            group_column=group_column
+        )
+
+        print("\nKMeans executado.")
+
+    except Exception as e:
+
+        print(f"\nKMeans não executado: {e}")
+
+    print("\nATHENA finalizado.")
+
+
+if __name__ == "__main__":
+    main()
