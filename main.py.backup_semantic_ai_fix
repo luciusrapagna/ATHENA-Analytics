@@ -1,5 +1,3 @@
-from src.export.export_manager import ExportManager
-from src.machine_learning.advanced_pattern_engine import AdvancedPatternEngine
 from src.intelligence.semantic_scientific_engine import SemanticScientificEngine
 from src.intelligence.data_recognition_core_v2 import DataRecognitionCoreV2
 from src.intelligence.auto_analysis_engine_v2 import AutoAnalysisEngineV2
@@ -170,33 +168,6 @@ def main():
     auto_engine_v2.run(df)
 
     print("AUTO ANALYSIS ENGINE V2 EXECUTADA")
-
-
-    print("\nExecutando Advanced Pattern Engine...")
-
-    advanced_engine = AdvancedPatternEngine(
-        output_dir=project_dir
-    )
-
-    advanced_engine.run(df)
-
-    print("ADVANCED PATTERN ENGINE EXECUTADA")
-
-
-    print("\nDeseja exportar os resultados finais?")
-    export_choice = input("Digite S para exportar ou ENTER para pular: ").strip().lower()
-
-    if export_choice == "s":
-
-        export_manager = ExportManager(
-            project_dir=project_dir
-        )
-
-        export_manager.run()
-
-    else:
-
-        print("Exportação final pulada pelo usuário.")
 
     print("\nATHENA finalizado.")
 

@@ -92,4 +92,3 @@ def recommend_analyses(df, domain="general"):
     recommendations = list(set(recommendations))
 
     return recommendations
-
