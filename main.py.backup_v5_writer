@@ -1,0 +1,236 @@
+from src.reviewer.scientific_reviewer_engine_v4 import ScientificReviewerEngineV4
+from src.interface.analysis_selector import AnalysisSelector
+from src.export.export_manager import ExportManager
+from src.machine_learning.advanced_pattern_engine import AdvancedPatternEngine
+from src.intelligence.auto_analysis_engine_v2 import AutoAnalysisEngineV2
+
+from src.statistics.assumption_posthoc_engine import AssumptionPostHocEngine
+from src.similarity.similarity_analysis_engine import SimilarityAnalysisEngine
+
+import pandas as pd
+
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
+
+from src.core.pipeline_router import route_pipeline
+from src.core.group_detector import detect_group_column
+from src.cleaning.smart_imputer import smart_imputation
+from src.statistics.auto_statistics import run_auto_statistics
+from src.multivariate.pca import run_pca
+from src.multivariate.kmeans import run_kmeans
+from src.utils.project_structure import create_project_structure
+
+
+def main():
+
+    print("\nATHENA Analytics\n")
+
+    Tk().withdraw()
+
+    file_path = askopenfilename(
+        title="Selecione a planilha",
+        filetypes=[
+            ("Excel files", "*.xlsx"),
+            ("CSV files", "*.csv")
+        ]
+    )
+
+    if not file_path:
+        print("\nNenhum arquivo selecionado.")
+        return
+
+    if file_path.endswith(".xlsx"):
+        df = pd.read_excel(file_path)
+
+    elif file_path.endswith(".csv"):
+        df = pd.read_csv(file_path)
+
+    else:
+        raise ValueError("Formato não suportado.")
+
+    print("\nPlanilha carregada.")
+
+    df = smart_imputation(df)
+
+    print("\nMissing values tratados.")
+
+    project_dir = create_project_structure(
+        base_name="athena_analysis"
+    )
+
+    figures_dir = project_dir / "04_figures"
+
+    print(f"\nProjeto criado em:\n{project_dir}")
+
+    pipeline_result = route_pipeline(df)
+
+    print("\nPipeline de reconhecimento executado.")
+    print(pipeline_result)
+
+    detected_domain = pipeline_result.get("domain", "generic")
+
+    group_column = detect_group_column(df)
+
+    print(
+        f"\nColuna de grupo detectada: {group_column}"
+    )
+
+    selector = AnalysisSelector()
+    analysis_plan = selector.show_modes(
+        detected_domain=detected_domain,
+        df=df,
+        group_column=group_column
+    )
+
+    selected = analysis_plan["analyses"]
+
+    def should_run(name):
+        return name in selected
+
+    print("\nPLANO FINAL EXECUTADO PELO ATHENA:")
+    print(selected)
+
+    if should_run("estatistica") or should_run("anova"):
+
+        stats_result = run_auto_statistics(
+            df,
+            group_column=group_column
+        )
+
+        print("\nEstatística/ANOVA executada.")
+        print(stats_result)
+
+    else:
+
+        print("\nEstatística/ANOVA ignorada.")
+
+    if should_run("pressupostos_posthoc"):
+
+        AssumptionPostHocEngine(
+            output_dir=project_dir
+        ).run(
+            df,
+            group_column=group_column
+        )
+
+    else:
+
+        print("\nPressupostos e pós-testes ignorados.")
+
+    if should_run("pca"):
+
+        try:
+
+            run_pca(
+                df,
+                group_column=group_column,
+                output_path=figures_dir
+            )
+
+            print("\nPCA executado.")
+
+        except Exception as e:
+
+            print(f"\nPCA não executado: {e}")
+
+    else:
+
+        print("\nPCA ignorado.")
+
+    if should_run("kmeans"):
+
+        try:
+
+            run_kmeans(
+                df,
+                group_column=group_column
+            )
+
+            print("\nKMeans executado.")
+
+        except Exception as e:
+
+            print(f"\nKMeans não executado: {e}")
+
+    else:
+
+        print("\nKMeans ignorado.")
+
+    if should_run("similaridade"):
+
+        SimilarityAnalysisEngine(
+            output_dir=project_dir
+        ).run(
+            df,
+            group_column=group_column
+        )
+
+    else:
+
+        print("\nAnálises de similaridade ignoradas.")
+
+    if should_run("graficos") or should_run("relatorio_word"):
+
+        print("\nExecutando Auto Analysis Engine V2...")
+
+        AutoAnalysisEngineV2(
+            output_dir=project_dir
+        ).run(df)
+
+        print("AUTO ANALYSIS ENGINE V2 EXECUTADA")
+
+    else:
+
+        print("\nAuto Analysis Engine V2 ignorada.")
+
+    if should_run("umap") or should_run("hdbscan"):
+
+        print("\nExecutando Advanced Pattern Engine...")
+
+        AdvancedPatternEngine(
+            output_dir=project_dir
+        ).run(df)
+
+        print("ADVANCED PATTERN ENGINE EXECUTADA")
+
+    else:
+
+        print("\nAdvanced Pattern Engine ignorada.")
+
+
+    print("\nExecutando ATHENA Scientific Reviewer v4...")
+
+    try:
+
+        ScientificReviewerEngineV4(
+            output_dir=project_dir
+        ).run()
+
+        print("\nATHENA Scientific Reviewer v4 finalizado.")
+
+    except Exception as e:
+
+        print(f"\nReviewer v4 não executado: {e}")
+    print("\nDeseja exportar os resultados finais?")
+    export_choice = input(
+        "Digite S para exportar ou ENTER para pular: "
+    ).strip().lower()
+
+    if export_choice == "s":
+
+        ExportManager(
+            project_dir=project_dir
+        ).run()
+
+    else:
+
+        print("Exportação final pulada pelo usuário.")
+
+    print("\nATHENA finalizado.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+

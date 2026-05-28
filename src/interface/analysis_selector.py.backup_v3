@@ -1,0 +1,223 @@
+from src.advisor.methodological_advisor import MethodologicalAdvisor
+class AnalysisSelector:
+
+    def __init__(self):
+
+        self.available_analyses = {
+            "1": "estatistica",
+            "2": "anova",
+            "3": "pca",
+            "4": "kmeans",
+            "5": "graficos",
+            "6": "relatorio_word",
+            "7": "umap",
+            "8": "hdbscan",
+            "9": "pressupostos_posthoc",
+            "10": "similaridade"
+        }
+
+        self.domain_recommendations = {
+            "enamed": [
+                "estatistica",
+                "anova",
+                "pressupostos_posthoc",
+                "pca",
+                "kmeans",
+                "graficos",
+                "relatorio_word"
+            ],
+            "educacao": [
+                "estatistica",
+                "anova",
+                "pressupostos_posthoc",
+                "pca",
+                "graficos",
+                "relatorio_word"
+            ],
+            "educacao_medica": [
+                "estatistica",
+                "anova",
+                "pressupostos_posthoc",
+                "pca",
+                "kmeans",
+                "graficos",
+                "relatorio_word"
+            ],
+            "ecologia": [
+                "estatistica",
+                "pca",
+                "similaridade",
+                "umap",
+                "hdbscan",
+                "graficos",
+                "relatorio_word"
+            ],
+            "oceanografia": [
+                "estatistica",
+                "pca",
+                "similaridade",
+                "umap",
+                "hdbscan",
+                "graficos",
+                "relatorio_word"
+            ],
+            "citometria_ambiental": [
+                "estatistica",
+                "pca",
+                "similaridade",
+                "umap",
+                "hdbscan",
+                "graficos",
+                "relatorio_word"
+            ],
+            "generic": [
+                "estatistica",
+                "pca",
+                "graficos",
+                "relatorio_word"
+            ]
+        }
+
+    def show_modes(self, detected_domain="generic"):
+
+        print("\n===================================")
+        print("ATHENA ANALYTICS - MODO DE ANÁLISE")
+        print("===================================")
+        print("[1] Automático - executa tudo")
+        print("[2] Assistido - sugestão padrão")
+        print("[3] Expert - escolha manual")
+        print("[4] Cientista - recomendação pelo domínio")
+
+        choice = input("\nEscolha o modo: ").strip()
+
+        if choice == "2":
+            return self.assisted_mode()
+
+        if choice == "3":
+            return self.expert_mode()
+
+        if choice == "4":
+            return self.scientist_mode(detected_domain)
+
+        return self.auto_mode()
+
+    def auto_mode(self):
+
+        analyses = list(self.available_analyses.values())
+
+        print("\nModo automático selecionado.")
+        print(analyses)
+
+        return {
+            "mode": "auto",
+            "analyses": analyses
+        }
+
+    def assisted_mode(self):
+
+        analyses = [
+            "estatistica",
+            "anova",
+            "pressupostos_posthoc",
+            "pca",
+            "kmeans",
+            "graficos",
+            "relatorio_word"
+        ]
+
+        print("\nModo assistido selecionado.")
+        print("\nSugestão padrão:")
+        print(analyses)
+
+        confirm = input(
+            "\nDigite S para aceitar ou N para escolher manualmente: "
+        ).strip().lower()
+
+        if confirm == "s":
+            final = analyses
+        else:
+            final = self.choose_analyses()
+
+        return {
+            "mode": "assisted",
+            "analyses": final
+        }
+
+    def expert_mode(self):
+
+        print("\nModo expert selecionado.")
+
+        return {
+            "mode": "expert",
+            "analyses": self.choose_analyses()
+        }
+
+    def scientist_mode(self, detected_domain="generic"):
+
+        print("\nModo cientista selecionado.")
+        print(f"\nDomínio detectado: {detected_domain}")
+
+        recommendations = self.domain_recommendations.get(
+            detected_domain,
+            self.domain_recommendations["generic"]
+        )
+
+        advisor = MethodologicalAdvisor()
+
+        choice = advisor.explain_plan(
+            detected_domain,
+            recommendations
+        )
+
+        if choice == "1":
+            final = recommendations
+
+        else:
+            final = self.edit_recommendation(recommendations)
+
+        return {
+            "mode": "scientist",
+            "domain": detected_domain,
+            "analyses": final
+        }
+
+    def edit_recommendation(self, recommendations):
+
+        print("\nRecomendação atual:")
+        print(recommendations)
+
+        print("\nAnálises disponíveis:")
+
+        for key, value in self.available_analyses.items():
+            mark = "✓" if value in recommendations else " "
+            print(f"[{key}] [{mark}] {value}")
+
+        return self.choose_analyses()
+
+    def choose_analyses(self):
+
+        print("\nEscolha as análises:")
+
+        for key, value in self.available_analyses.items():
+            print(f"[{key}] {value}")
+
+        selected = input(
+            "\nDigite os números separados por vírgula. Exemplo: 1,3,9,10: "
+        ).strip()
+
+        selected_keys = [
+            item.strip()
+            for item in selected.split(",")
+            if item.strip() in self.available_analyses
+        ]
+
+        analyses = [
+            self.available_analyses[key]
+            for key in selected_keys
+        ]
+
+        print("\nAnálises selecionadas:")
+        print(analyses)
+
+        return analyses
+

@@ -1,0 +1,332 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+from pathlib import Path
+
+
+class GraphAdvisorV1:
+
+    def __init__(self, output_dir="outputs"):
+
+        self.output_dir = Path(output_dir)
+        self.graph_dir = self.output_dir / "graph_advisor"
+
+        self.graph_dir.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        self.available_graphs = {
+            "1": "barras",
+            "2": "boxplot",
+            "3": "pizza",
+            "4": "xy",
+            "5": "histograma",
+            "6": "correlacao",
+            "7": "heatmap"
+        }
+
+    def choose_graphs(self):
+
+        print("\n===================================")
+        print("ATHENA GRAPH ADVISOR v1")
+        print("===================================")
+        print("[1] Barras")
+        print("[2] Boxplot")
+        print("[3] Pizza")
+        print("[4] Dispersão XY")
+        print("[5] Histograma")
+        print("[6] Correlação")
+        print("[7] Heatmap")
+        print("[ENTER] Pular gráficos manuais")
+
+        selected = input(
+            "\nEscolha os gráficos separados por vírgula: "
+        ).strip()
+
+        if not selected:
+            return []
+
+        selected_keys = [
+            item.strip()
+            for item in selected.split(",")
+            if item.strip() in self.available_graphs
+        ]
+
+        graphs = [
+            self.available_graphs[key]
+            for key in selected_keys
+        ]
+
+        print("\nGráficos selecionados:")
+        print(graphs)
+
+        return graphs
+
+    def detect_numeric_columns(self, df):
+
+        return df.select_dtypes(
+            include=[np.number]
+        ).columns.tolist()
+
+    def detect_categorical_columns(self, df):
+
+        return df.select_dtypes(
+            include=["object", "category"]
+        ).columns.tolist()
+
+    def safe_name(self, name):
+
+        return (
+            str(name)
+            .replace("/", "_")
+            .replace("\\", "_")
+            .replace("\n", "_")
+            .replace(" ", "_")
+        )
+
+    def plot_bar(self, df):
+
+        numeric_cols = self.detect_numeric_columns(df)
+        categorical_cols = self.detect_categorical_columns(df)
+
+        if not numeric_cols:
+            print("[GRAPH] Sem colunas numéricas para barras.")
+            return
+
+        if categorical_cols:
+            cat = categorical_cols[0]
+            num = numeric_cols[0]
+
+            plot_df = (
+                df.groupby(cat)[num]
+                .mean()
+                .reset_index()
+                .dropna()
+            )
+
+            plt.figure(figsize=(9, 5))
+            plt.bar(
+                plot_df[cat].astype(str),
+                plot_df[num]
+            )
+            plt.title(f"Barras - média de {num} por {cat}")
+            plt.xlabel(cat)
+            plt.ylabel(num)
+            plt.xticks(rotation=45, ha="right")
+            plt.tight_layout()
+
+            output = self.graph_dir / f"bar_{self.safe_name(num)}_by_{self.safe_name(cat)}.png"
+            plt.savefig(output, dpi=300)
+            plt.close()
+
+        else:
+            means = df[numeric_cols].mean()
+
+            plt.figure(figsize=(9, 5))
+            plt.bar(
+                means.index.astype(str),
+                means.values
+            )
+            plt.title("Barras - médias das variáveis numéricas")
+            plt.ylabel("Média")
+            plt.xticks(rotation=45, ha="right")
+            plt.tight_layout()
+
+            output = self.graph_dir / "bar_numeric_means.png"
+            plt.savefig(output, dpi=300)
+            plt.close()
+
+    def plot_boxplot(self, df):
+
+        numeric_cols = self.detect_numeric_columns(df)
+
+        if not numeric_cols:
+            print("[GRAPH] Sem colunas numéricas para boxplot.")
+            return
+
+        plt.figure(figsize=(10, 5))
+        df[numeric_cols].boxplot()
+        plt.title("Boxplot das variáveis numéricas")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+
+        output = self.graph_dir / "boxplot_numeric_variables.png"
+        plt.savefig(output, dpi=300)
+        plt.close()
+
+    def plot_pie(self, df):
+
+        categorical_cols = self.detect_categorical_columns(df)
+
+        if not categorical_cols:
+            print("[GRAPH] Sem coluna categórica para pizza.")
+            return
+
+        cat = categorical_cols[0]
+        counts = df[cat].value_counts().head(8)
+
+        plt.figure(figsize=(7, 7))
+        plt.pie(
+            counts.values,
+            labels=counts.index.astype(str),
+            autopct="%1.1f%%"
+        )
+        plt.title(f"Pizza - distribuição de {cat}")
+        plt.tight_layout()
+
+        output = self.graph_dir / f"pie_{self.safe_name(cat)}.png"
+        plt.savefig(output, dpi=300)
+        plt.close()
+
+    def plot_xy(self, df):
+
+        numeric_cols = self.detect_numeric_columns(df)
+
+        if len(numeric_cols) < 2:
+            print("[GRAPH] São necessárias duas colunas numéricas para XY.")
+            return
+
+        x = numeric_cols[0]
+        y = numeric_cols[1]
+
+        plt.figure(figsize=(7, 5))
+        plt.scatter(df[x], df[y], alpha=0.7)
+        plt.title(f"Dispersão XY - {x} vs {y}")
+        plt.xlabel(x)
+        plt.ylabel(y)
+        plt.tight_layout()
+
+        output = self.graph_dir / f"xy_{self.safe_name(x)}_vs_{self.safe_name(y)}.png"
+        plt.savefig(output, dpi=300)
+        plt.close()
+
+    def plot_histogram(self, df):
+
+        numeric_cols = self.detect_numeric_columns(df)
+
+        if not numeric_cols:
+            print("[GRAPH] Sem colunas numéricas para histograma.")
+            return
+
+        for col in numeric_cols:
+
+            plt.figure(figsize=(7, 5))
+            df[col].dropna().hist(bins=20)
+            plt.title(f"Histograma - {col}")
+            plt.xlabel(col)
+            plt.ylabel("Frequência")
+            plt.tight_layout()
+
+            output = self.graph_dir / f"hist_{self.safe_name(col)}.png"
+            plt.savefig(output, dpi=300)
+            plt.close()
+
+    def plot_correlation(self, df):
+
+        numeric_cols = self.detect_numeric_columns(df)
+
+        if len(numeric_cols) < 2:
+            print("[GRAPH] Sem variáveis suficientes para correlação.")
+            return
+
+        corr = df[numeric_cols].corr()
+
+        output_xlsx = self.graph_dir / "correlation_matrix.xlsx"
+        corr.to_excel(output_xlsx)
+
+        plt.figure(figsize=(8, 6))
+        plt.imshow(corr, aspect="auto")
+        plt.colorbar()
+        plt.xticks(
+            range(len(corr.columns)),
+            corr.columns,
+            rotation=45,
+            ha="right"
+        )
+        plt.yticks(
+            range(len(corr.index)),
+            corr.index
+        )
+        plt.title("Matriz de correlação")
+        plt.tight_layout()
+
+        output = self.graph_dir / "correlation_heatmap.png"
+        plt.savefig(output, dpi=300)
+        plt.close()
+
+    def plot_heatmap(self, df):
+
+        numeric_cols = self.detect_numeric_columns(df)
+
+        if len(numeric_cols) < 2:
+            print("[GRAPH] Sem variáveis suficientes para heatmap.")
+            return
+
+        data = df[numeric_cols].copy()
+        data = data.fillna(data.median())
+
+        data = (
+            data - data.mean()
+        ) / data.std(ddof=0)
+
+        plt.figure(figsize=(10, 6))
+        plt.imshow(data, aspect="auto")
+        plt.colorbar()
+        plt.xticks(
+            range(len(numeric_cols)),
+            numeric_cols,
+            rotation=45,
+            ha="right"
+        )
+        plt.ylabel("Observações")
+        plt.title("Heatmap das variáveis padronizadas")
+        plt.tight_layout()
+
+        output = self.graph_dir / "standardized_heatmap.png"
+        plt.savefig(output, dpi=300)
+        plt.close()
+
+    def run(self, df):
+
+        graphs = self.choose_graphs()
+
+        if not graphs:
+            print("\n[GRAPH ADVISOR] Nenhum gráfico manual selecionado.")
+            return []
+
+        generated = []
+
+        if "barras" in graphs:
+            self.plot_bar(df)
+            generated.append("barras")
+
+        if "boxplot" in graphs:
+            self.plot_boxplot(df)
+            generated.append("boxplot")
+
+        if "pizza" in graphs:
+            self.plot_pie(df)
+            generated.append("pizza")
+
+        if "xy" in graphs:
+            self.plot_xy(df)
+            generated.append("xy")
+
+        if "histograma" in graphs:
+            self.plot_histogram(df)
+            generated.append("histograma")
+
+        if "correlacao" in graphs:
+            self.plot_correlation(df)
+            generated.append("correlacao")
+
+        if "heatmap" in graphs:
+            self.plot_heatmap(df)
+            generated.append("heatmap")
+
+        print("\n[GRAPH ADVISOR] Gráficos gerados em:")
+        print(self.graph_dir)
+
+        return generated

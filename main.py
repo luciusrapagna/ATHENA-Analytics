@@ -1,7 +1,13 @@
+from src.visualization.graph_advisor_v1 import GraphAdvisorV1
+from src.writer.scientific_writer_engine_v5 import ScientificWriterEngineV5
+from src.reviewer.scientific_reviewer_engine_v4 import ScientificReviewerEngineV4
 from src.interface.analysis_selector import AnalysisSelector
 from src.export.export_manager import ExportManager
 from src.machine_learning.advanced_pattern_engine import AdvancedPatternEngine
 from src.intelligence.auto_analysis_engine_v2 import AutoAnalysisEngineV2
+
+from src.statistics.assumption_posthoc_engine import AssumptionPostHocEngine
+from src.similarity.similarity_analysis_engine import SimilarityAnalysisEngine
 
 import pandas as pd
 
@@ -58,8 +64,25 @@ def main():
 
     print(f"\nProjeto criado em:\n{project_dir}")
 
+    pipeline_result = route_pipeline(df)
+
+    print("\nPipeline de reconhecimento executado.")
+    print(pipeline_result)
+
+    detected_domain = pipeline_result.get("domain", "generic")
+
+    group_column = detect_group_column(df)
+
+    print(
+        f"\nColuna de grupo detectada: {group_column}"
+    )
+
     selector = AnalysisSelector()
-    analysis_plan = selector.show_modes()
+    analysis_plan = selector.show_modes(
+        detected_domain=detected_domain,
+        df=df,
+        group_column=group_column
+    )
 
     selected = analysis_plan["analyses"]
 
@@ -68,17 +91,6 @@ def main():
 
     print("\nPLANO FINAL EXECUTADO PELO ATHENA:")
     print(selected)
-
-    pipeline_result = route_pipeline(df)
-
-    print("\nPipeline de reconhecimento executado.")
-    print(pipeline_result)
-
-    group_column = detect_group_column(df)
-
-    print(
-        f"\nColuna de grupo detectada: {group_column}"
-    )
 
     if should_run("estatistica") or should_run("anova"):
 
@@ -93,6 +105,19 @@ def main():
     else:
 
         print("\nEstatística/ANOVA ignorada.")
+
+    if should_run("pressupostos_posthoc"):
+
+        AssumptionPostHocEngine(
+            output_dir=project_dir
+        ).run(
+            df,
+            group_column=group_column
+        )
+
+    else:
+
+        print("\nPressupostos e pós-testes ignorados.")
 
     if should_run("pca"):
 
@@ -133,6 +158,19 @@ def main():
 
         print("\nKMeans ignorado.")
 
+    if should_run("similaridade"):
+
+        SimilarityAnalysisEngine(
+            output_dir=project_dir
+        ).run(
+            df,
+            group_column=group_column
+        )
+
+    else:
+
+        print("\nAnálises de similaridade ignoradas.")
+
     if should_run("graficos") or should_run("relatorio_word"):
 
         print("\nExecutando Auto Analysis Engine V2...")
@@ -161,7 +199,53 @@ def main():
 
         print("\nAdvanced Pattern Engine ignorada.")
 
-    if should_run("exportacao"):
+
+
+    print("\nDeseja escolher gráficos manualmente pelo Graph Advisor v1?")
+    graph_choice = input("Digite S para escolher gráficos ou ENTER para pular: ").strip().lower()
+
+    if graph_choice == "s":
+
+        GraphAdvisorV1(
+            output_dir=project_dir
+        ).run(df)
+
+    else:
+
+        print("\nGraph Advisor v1 pulado.")
+    print("\nExecutando ATHENA Scientific Reviewer v4...")
+
+    try:
+
+        ScientificReviewerEngineV4(
+            output_dir=project_dir
+        ).run()
+
+        print("\nATHENA Scientific Reviewer v4 finalizado.")
+
+    except Exception as e:
+
+        print(f"\nReviewer v4 não executado: {e}")
+
+    print("\nExecutando ATHENA Scientific Writer v5...")
+
+    try:
+
+        ScientificWriterEngineV5(
+            output_dir=project_dir
+        ).run()
+
+        print("\nATHENA Scientific Writer v5 finalizado.")
+
+    except Exception as e:
+
+        print(f"\nWriter v5 não executado: {e}")
+    print("\nDeseja exportar os resultados finais?")
+    export_choice = input(
+        "Digite S para exportar ou ENTER para pular: "
+    ).strip().lower()
+
+    if export_choice == "s":
 
         ExportManager(
             project_dir=project_dir
@@ -169,10 +253,15 @@ def main():
 
     else:
 
-        print("\nExportação ignorada.")
+        print("Exportação final pulada pelo usuário.")
 
     print("\nATHENA finalizado.")
 
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
